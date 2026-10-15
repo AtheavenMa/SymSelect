@@ -5,7 +5,7 @@
 👉 TL;DR. A transformation can preserve a label for one sample but change it for another. **SymSelect** learns which candidate pairs to align from their representation similarity, recovering much of the benefit of supervised valid-pair alignment without knowing pair validity. The core is [one PyTorch file](symselect.py), with runnable [arithmetic](demo/demo.py) and [theory](demo/theory.py) demos.
 
 <p align="center">
-  <b>📄 ICLR 2027 submission</b> &nbsp; | &nbsp;
+  <b>📄 arXiv paper coming soon</b> &nbsp; | &nbsp;
   <a href="#-quickstart"><b>🚀 Quickstart</b></a> &nbsp; | &nbsp;
   <a href="#-demo"><b>🧪 Demo</b></a>
 </p>
@@ -50,7 +50,7 @@ $$
 🧮 **Similarity selection.** Score and rank all $B$ candidate pairs within the mini-batch:
 
 $$
-S_i=\cos(z_i,z_i'),\qquad \mathcal K=\operatorname{TopK}(S_1,\dots,S_B;k).
+S_i=\cos(z_i,z_i'),\qquad \mathcal K=\mathrm{TopK}(S_1,\dots,S_B;k).
 $$
 
 🧩 **Alignment objective.** Only selected pairs contribute to the alignment term; classification uses the original anchors:
@@ -218,7 +218,7 @@ python demo/theory.py
 
 We thank the creators of the MNS and I-RAVEN benchmarks and the wider representation-learning community.
 
-📄 **Paper.** *SymSelect: Recovering Symmetry Alignment When Validity Depends on the Sample*. ICLR 2027 submission.
+📄 **Paper.** *SymSelect: Recovering Symmetry Alignment When Validity Depends on the Sample*. arXiv paper coming soon.
 
 ## 📜 License
 
