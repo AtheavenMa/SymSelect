@@ -1,4 +1,4 @@
-# 🔀 SymSelect: Learning Which Transformations to Trust for Systematic Reasoning
+# 🎯 SymSelect: Learning Which Transformations to Trust for Systematic Reasoning
 
 🌍 Languages: [English](README.md) | [中文](README_cn.md)
 
