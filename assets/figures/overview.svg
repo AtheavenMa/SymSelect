@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="355" viewBox="0 0 1100 355" role="img" aria-labelledby="ttl desc">
+<title id="ttl">SymSelect method overview</title>
+<desc id="desc">Original input and transformed candidate pass through a shared backbone and projector, ranked within a batch by cosine similarity; selected pairs contribute to the alignment objective.</desc>
+<rect width="1100" height="355" rx="18" fill="#f8fafc"/>
+<text x="42" y="42" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="22" fill="#172d3a">Selective symmetry alignment</text>
+<text x="43" y="68" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#5e7280">Input-dependent validity · similarity-based selection · shared representations</text>
+<g font-family="Arial,Helvetica,sans-serif">
+<rect x="36" y="96" width="232" height="203" rx="14" fill="#fff" stroke="#cfdae2" stroke-width="1.5"/>
+<rect x="302" y="96" width="232" height="203" rx="14" fill="#fff" stroke="#cfdae2" stroke-width="1.5"/>
+<rect x="568" y="96" width="232" height="203" rx="14" fill="#fff" stroke="#cfdae2" stroke-width="1.5"/>
+<rect x="834" y="96" width="230" height="203" rx="14" fill="#fff" stroke="#cfdae2" stroke-width="1.5"/>
+<text x="54" y="123" font-size="12" font-weight="700" fill="#087c81">01  CANDIDATE PAIRS</text>
+<text x="320" y="123" font-size="12" font-weight="700" fill="#087c81">02  SHARED ENCODER</text>
+<text x="586" y="123" font-size="12" font-weight="700" fill="#087c81">03  TOP-k SELECTION</text>
+<text x="852" y="123" font-size="12" font-weight="700" fill="#087c81">04  TRAIN</text>
+<rect x="55" y="147" width="91" height="37" rx="7" fill="#e9f3f4" stroke="#a9d4d5"/>
+<rect x="159" y="147" width="91" height="37" rx="7" fill="#fff0e6" stroke="#e6c3a6"/>
+<text x="100" y="170" font-size="16" text-anchor="middle" font-weight="700" fill="#195b61">xᵢ</text>
+<text x="204" y="170" font-size="15" text-anchor="middle" font-weight="700" fill="#895a3b">Tᵢ(xᵢ)</text>
+<text x="153" y="220" font-size="15" text-anchor="middle" fill="#324d5e">one candidate / sample</text>
+<text x="153" y="243" font-size="13" text-anchor="middle" fill="#657985">validity unknown</text>
+<rect x="332" y="145" width="170" height="37" rx="7" fill="#ecf1f8" stroke="#bfd0e1"/>
+<text x="417" y="168" font-size="15" text-anchor="middle" fill="#2b4d6b">shared fθ</text>
+<path d="M417 182 V202" stroke="#9badbd" stroke-width="2" stroke-linecap="round"/>
+<path d="M411 196 L417 202 L423 196" fill="none" stroke="#9badbd" stroke-width="2" stroke-linecap="round"/>
+<rect x="332" y="207" width="170" height="37" rx="7" fill="#eaf5ef" stroke="#b0d7c2"/>
+<text x="417" y="230" font-size="15" text-anchor="middle" fill="#225e49">projection E</text>
+<text x="417" y="269" font-size="13" text-anchor="middle" fill="#657985">zᵢ and z′ᵢ</text>
+<rect x="590" y="145" width="188" height="42" rx="7" fill="#ecf1f8" stroke="#bfd0e1"/>
+<text x="684" y="171" font-size="15" text-anchor="middle" fill="#2b4d6b">Sᵢ = cos(zᵢ, z′ᵢ)</text>
+<text x="593" y="214" font-size="13" fill="#546b77">pairwise similarity ranks</text>
+<rect x="594" y="226" width="150" height="7" rx="3" fill="#087c81"/>
+<rect x="594" y="240" width="124" height="7" rx="3" fill="#087c81"/>
+<rect x="594" y="254" width="85" height="7" rx="3" fill="#9fb0bb"/>
+<rect x="594" y="268" width="55" height="7" rx="3" fill="#9fb0bb"/>
+<text x="763" y="248" font-size="11" fill="#087c81" font-weight="700" text-anchor="end">top-k</text>
+<rect x="856" y="147" width="186" height="37" rx="7" fill="#eaf5ef" stroke="#b0d7c2"/>
+<text x="949" y="171" font-size="14" font-weight="700" text-anchor="middle" fill="#225e49">selected alignment</text>
+<rect x="856" y="197" width="186" height="37" rx="7" fill="#ecf1f8" stroke="#bfd0e1"/>
+<text x="949" y="221" font-size="14" font-weight="700" text-anchor="middle" fill="#2b4d6b">anchor classification</text>
+<text x="949" y="264" font-size="13" text-anchor="middle" fill="#546b77">L = LCE + λLalign</text>
+<path d="M270 199 H298 M292 193 L298 199 L292 205" fill="none" stroke="#708896" stroke-width="2" stroke-linejoin="round"/>
+<path d="M536 199 H564 M558 193 L564 199 L558 205" fill="none" stroke="#708896" stroke-width="2" stroke-linejoin="round"/>
+<path d="M802 199 H830 M824 193 L830 199 L824 205" fill="none" stroke="#708896" stroke-width="2" stroke-linejoin="round"/>
+</g>
+<text x="40" y="329" font-family="Arial,Helvetica,sans-serif" font-size="12" fill="#738693">Training uses the selected scores for alignment and original anchors for classification.</text>
+</svg>

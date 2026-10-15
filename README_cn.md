@@ -1,64 +1,199 @@
 # 🔀 SymSelect：输入依赖有效性条件下的对称性对齐
 
-🌍 语言：[English](README.md) | [中文](README_cn.md)
+🌍 Languages: [English](README.md) | [中文](README_cn.md)
 
-👉 **概要。** 同一种候选结构变换，对部分样本保留标签，对其他样本可能改变标签。SymSelect 使用投影表示的余弦相似度，在一个 mini-batch 内选择得分最高的 `k` 个候选关系进行对齐，无需预先获取变换有效性标签。
+👉 TL;DR. 同一种结构变换可能对某些样本保留标签，却改变另一些样本的标签。**SymSelect** 利用表征相似度选择值得对齐的候选样本对，在无需已知变换有效性标签的情况下恢复监督对齐的大部分收益。
 
-**📄 ICLR 2027 投稿** · [英文说明](README.md)
-
-> **发布范围：** 本仓库提供独立的 PyTorch 参考实现与离线教学 Demo，而非 MNS、I-RAVEN 全实验复现。论文主结果来自所提供的当前版本论文，不来自小规模演示。
+<p align="center">
+  <b>📄 ICLR 2027 投稿</b> &nbsp; | &nbsp;
+  <a href="#-quickstart"><b>🚀 Quickstart</b></a> &nbsp; | &nbsp;
+  <a href="#-demo"><b>🧪 Demo</b></a>
+</p>
 
 ## 🎥 Overview
 
-每个原始样本采样一个候选变换。原始输入与变换输入经过共享骨干网络和独立的投影头；在整个 batch 上计算候选关系的余弦相似度并选择 top-k。分类交叉熵仅针对原始样本，选中关系用于对齐损失。
+<p align="center">
+  <img src="assets/figures/overview.svg" alt="SymSelect：候选变换、共享编码器、批内相似度选择与训练" width="900"/>
+</p>
 
-## ✨ 核心特点
+**图 1.** 为每个原始样本生成一个候选变换，计算两者表征的余弦相似度，在整个 mini-batch 中选择 top-`k` 关系进行对齐；分类损失仍针对原始样本。
 
-- 🎯 同一个结构变换可以对不同输入具有不同的标签有效性。
-- 🧮 在 batch 的候选关系之间选择 top-k，而不是每个样本内部重复筛选。
-- 🛡️ 选择与训练阶段不使用候选变换有效性标签。
-- 📈 当前论文报告，在研究的 MNS 和 I-RAVEN 设置下恢复了监督有效关系对齐收益的 77%–92%。
-- 🔬 即使选中有效率是 100%，也不能因此保证保留完整有效关系群体的有益梯度。
-- ⚡ 一个独立的 [`symselect.py`](symselect.py) 文件与两个不下载数据集的 Demo。
+---
 
-## 📐 方法
+## ✨ Highlights
 
-```text
-z_i = E(f(x_i))              z'_i = E(f(T_i(x_i)))
-S_i = cosine(z_i, z'_i)
-K = top_k(S_1, ..., S_B)
-L_align = 1 - mean(S_i for i in K)
-L_total = L_CE(original anchors) + lambda_align * L_align
-```
+- 🎯 **输入依赖的有效性。** 同一种结构变换在不同样本上可能产生不同的标签变化。
+- 🧮 **选择性对齐。** 在整个 mini-batch 中计算相似度并选出 top-`k` 候选关系。
+- 🧭 **无需有效性标注。** 选择对齐对象时不使用变换是否有效的标签。
+- 📈 **接近监督对齐。** 论文在 MNS 和 I-RAVEN 的多个设置上恢复了 77%–92% 的监督对齐收益。
+- 🔬 **不仅是选择精度。** 选中的样本全部有效，仍不保证保留完整有效样本群的有益梯度。
+- ⚡ **轻量 PyTorch 接口。** [`symselect.py`](symselect.py) 可以直接接入具有投影表征的模型。
 
-离散索引不通过梯度传播，但选中关系的余弦分数可以正常反向传播。论文采用 `B=64`、`k=6`、`lambda_align=1` 的参考设置。
+---
 
-理论同时考虑被选中关系中的无效污染，以及被保留的有效关系对完整有效梯度的代表性偏差，不能将选择精度当作全部评价依据。
+## 💡 Why SymSelect?
 
-## ⚙️ 安装与运行
+交换 `2 + 5` 的操作数不会改变结果，交换 `2 − 5` 的操作数通常会改变结果。对齐全部变换可能引入错误约束，完全不使用变换则浪费有效的监督信号。
+
+SymSelect 根据模型产生的表示相似度挑选候选关系。理论进一步区分无效关系的污染，以及只保留部分有效关系所造成的梯度偏差。
+
+---
+
+## 📐 How SymSelect Works
+
+对一个 mini-batch 中的原始样本 `x_i`，每个样本生成一个候选变换 `T_i`。使用共享 backbone `f_θ` 和投影头 `E`：
+
+$$
+z_i=E(f_\theta(x_i)),\qquad z'_i=E(f_\theta(T_i(x_i))).
+$$
+
+计算相似度并选择最高的 `k` 个样本对：
+
+$$
+S_i=\cos(z_i,z'_i),\qquad
+\mathcal K=\operatorname{TopK}(S_1,\ldots,S_B;k).
+$$
+
+优化目标为
+
+$$
+L_{\mathrm{align}}=1-\frac{1}{k}\sum_{i\in\mathcal K}S_i,\qquad
+L=L_{\mathrm{CE}}+\lambda_{\mathrm{align}}L_{\mathrm{align}}.
+$$
+
+🎯 **选择。** Top-`k` 的离散索引不参与求导，但选中的相似度正常传播梯度。
+
+🧩 **监督。** 原始样本用于分类监督，选中的候选关系用于对齐。
+
+⚙️ **论文设置。** `B=64`、`k=6`、`λ_align=1`。
+
+📏 **理论结果。** 除了选中有效率 `ρ_k`，还需要考虑保留的有效关系所产生的梯度偏差 `ε_sel`：
+
+$$
+\mu_J>H_J\bigl(\epsilon_{\mathrm{sel}}+2(1-\rho_k)G\bigr).
+$$
+
+详细定义见 [Method and Theory](docs/METHOD.md)，精确反例见 [`demo/theory.py`](demo/theory.py)。
+
+---
+
+## 🔎 Comparison of Methods
+
+| 方法 | 候选变换的处理方式 |
+|---|---|
+| Base | 仅在原始样本上训练分类 |
+| Sym. Sample | 把已知有效的变换样本加入分类监督 |
+| Align All | 对齐全部候选样本对 |
+| Random-`k` | 随机选择 `k` 个样本对 |
+| Bottom-`k` | 选择相似度最低的 `k` 个样本对 |
+| Validity-matched random-`k` | 匹配每个 batch 的有效/无效组成后随机选择 |
+| Sup. Align | 利用有效性标签对齐全部有效关系 |
+| 🔀 **SymSelect** | **无需有效性标签，选择相似度最高的 `k` 个样本对** |
+
+---
+
+## ⚙️ Install
 
 ```bash
 git clone https://github.com/AtheavenMa/SymSelect.git
 cd SymSelect
 python -m pip install -e '.[demo,test]'
 python -m pytest -q
+```
+
+---
+
+## 🚀 Quickstart
+
+```python
+import torch
+import torch.nn.functional as F
+from symselect import symselect_loss
+
+x = torch.randn(64, 5)
+x_t = x[:, [1, 0, 2, 3, 4]]
+y = (x[:, 0] + x[:, 1] > 0).long()
+
+backbone = torch.nn.Linear(5, 32)
+classifier = torch.nn.Linear(32, 2)
+projector = torch.nn.Linear(32, 16)
+
+h, h_t = backbone(x), backbone(x_t)
+loss_ce = F.cross_entropy(classifier(h), y)
+selection = symselect_loss(projector(h), projector(h_t), k=6)
+
+loss = loss_ce + selection.loss
+loss.backward()
+print(selection.indices.tolist())
+```
+
+运行完整算术 Demo 见 [`demo/demo.py`](demo/demo.py)。
+
+---
+
+## 📊 Main Results
+
+**论文报告的测试准确率（%），10 个随机种子的均值 ± 标准差。**
+
+| 数据集 | Backbone | Base | Sym. Sample | Sup. Align | 🔀 SymSelect |
+|---|---|---:|---:|---:|---:|
+| MNS | ResNet-MLP | 25.29±0.44 | 27.03±0.52 | 30.05±0.56 | **28.94±0.40** |
+| MNS | ViT-B/16 | 22.78±0.34 | 24.33±0.27 | 27.63±0.23 | **27.22±0.39** |
+| MNS | CLIP ViT-B/16 | 23.46±0.32 | 26.77±0.38 | 28.36±0.37 | **27.59±0.37** |
+| MNS | CCT | 35.74±0.46 | 37.86±0.45 | 40.23±0.41 | **39.18±0.49** |
+| I-RAVEN | CCT | 75.62±0.42 | 77.25±0.46 | 79.34±0.53 | **78.97±0.58** |
+
+<p align="center">
+  <img src="assets/figures/recovery.svg" alt="五组模型设置中恢复的监督对齐收益" width="850"/>
+</p>
+
+**图 2.** 以 `(SymSelect − Base) / (Sup. Align − Base)` 计算恢复的监督对齐收益比例。
+
+| CCT 方法 | MNS 准确率 | I-RAVEN 准确率 |
+|---|---:|---:|
+| Random-`k` | 36.27±0.44 | 75.96±0.45 |
+| Validity-matched random-`k` | 37.52±0.41 | 77.21±0.39 |
+| 🔀 **SymSelect** | **39.18±0.49** | **78.97±0.58** |
+
+SymSelect 在有效性组成相同的情况下，分别高出 1.66 和 1.76 个百分点，说明选中哪些关系本身也很重要。
+
+---
+
+## 🧪 Demo
+
+👉 **算术变换 Demo。** 生成加减乘表达式、交换操作数，用共享神经网络计算相似度、选择 top-`k`，并完成一次真实的联合损失反向传播：
+
+```bash
 python demo/demo.py
+```
+
+输出保存在 `outputs/demo/`，包括相似度排序可视化、样本对信息和训练诊断。
+
+👉 **理论反例 Demo。** 展示选中有效率 100% 时，局部更新方向仍可能与完整有效关系 Oracle 相反。
+
+```bash
 python demo/theory.py
 ```
 
-主 Demo 生成合成算术表达式及操作数交换后的候选关系，训练一个小型共享网络，再完成一次真实的联合损失梯度更新；事后展示的有效性标签绝不会送入选择器。
+详见 [Demo Guide](docs/DEMO.md)。
 
-理论 Demo 基于精确的三个候选关系反例：top-1 的有效率为 100%，其更新对目标的局部一阶作用为 -1，而完整有效关系 Oracle 的作用为 +1。
+---
 
-## 📊 论文主要结果
+## 🗺️ Figure Map
 
-| 数据集 | Base | 有效关系监督对齐 | SymSelect | 恢复的收益 |
-|---|---:|---:|---:|---:|
-| MNS · CCT | 35.74% | 40.23% | 39.18% | 77% |
-| I-RAVEN · CCT | 75.62% | 79.34% | 78.97% | 90% |
+| 图 | 内容 |
+|---|---|
+| [Overview](assets/figures/overview.svg) | 变换候选、相似度选择与训练 |
+| [Recovery](assets/figures/recovery.svg) | 五组设置的监督对齐收益恢复比例 |
+| [Demo](demo/demo.py) | 相似度排序、变换关系和训练指标 |
 
-这张表是论文中报告的 10 个随机种子结果的均值，而不是 Demo 的执行结果。详情及完整 Quickstart 见 [英文 README](README.md)。
+---
 
-## 📜 许可证
+## 🙏 Appreciation
 
-原创参考代码使用 MIT 许可证。第三方数据集、模型和图件仍需遵循各自授权。
+感谢 MNS、I-RAVEN 数据集的开发者，以及在结构化泛化和表征学习领域作出贡献的研究者。
+
+## 📜 License
+
+MIT. 详见 [LICENSE](LICENSE)。
+

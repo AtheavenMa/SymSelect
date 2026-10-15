@@ -2,69 +2,99 @@
 
 🌍 Languages: [English](README.md) | [中文](README_cn.md)
 
-👉 **TL;DR.** A candidate symmetry transformation may preserve labels for some samples but not others. SymSelect selects the top-`k` within-batch candidate pairs by projected representation cosine similarity, without seeing transformation-validity labels. This repository provides a small, reusable PyTorch loss and two offline demonstrations.
+👉 TL;DR. The same transformation may preserve a label for some inputs but change it for others. **SymSelect** selects which candidate pairs to align using their representation similarity, recovering much of the benefit of supervised valid-pair alignment without knowing pair validity.
 
-**📄 ICLR 2027 submission** · [🚀 Quickstart](#-quickstart) · [🧪 Demo](#-demo)
-
-> **Release scope:** This is a working reference implementation and offline educational demo, **not a complete MNS/I-RAVEN benchmark reproduction**. The reported benchmark numbers below are from the current manuscript and are not outputs of the bundled demo. The original benchmark training code and checkpoints were not present in the provided archive.
+<p align="center">
+  <b>📄 ICLR 2027 submission</b> &nbsp; | &nbsp;
+  <a href="#-quickstart"><b>🚀 Quickstart</b></a> &nbsp; | &nbsp;
+  <a href="#-demo"><b>🧪 Demo</b></a>
+</p>
 
 ## 🎥 Overview
 
-A structural transformation creates a candidate pair whose label validity is unknown. A shared backbone and projector map both views to representations. SymSelect sorts pairwise cosine similarities across the **entire mini-batch** and aligns only the top-`k` pairs; classification is computed on original anchors only.
+<p align="center">
+  <img src="assets/figures/overview.svg" alt="SymSelect pipeline: candidate transformations, shared representations, within-batch selection and training objective" width="900"/>
+</p>
+
+**Figure 1.** For each input, SymSelect evaluates a candidate transformation, ranks the resulting pairs by cosine similarity, and aligns only the top-`k` pairs. Classification uses the original inputs.
+
+---
 
 ## ✨ Highlights
 
-- 🎯 **Hidden pair validity:** One transformation can be valid for some inputs and invalid for others.
-- 🧮 **Mini-batch selection:** One candidate transformation per anchor, cosine ranking across candidates, and top-`k` alignment.
-- 🛡️ **No leakage:** No validity labels or transformed target labels enter SymSelect training.
-- 📈 **Paper-reported result:** 77%–92% recovery of the supervised valid-pair alignment gain on the reported MNS and I-RAVEN configurations.
-- 🔬 **Beyond validity precision:** Even selecting only valid pairs need not preserve the oracle gradient's beneficial direction.
-- ⚡ **Runnable and reusable:** [`symselect.py`](symselect.py) depends only on PyTorch. Both offline demos use synthetic data or an exact theoretical construction.
+- 🎯 **Input-dependent validity.** A structural transformation may preserve the target for one sample and change it for another.
+- 🧮 **Selective alignment.** Rank projected cosine similarities within each mini-batch and align the top-`k` candidate pairs.
+- 🧭 **Label-free selection.** Pair-validity labels are not needed to decide which pairs to align.
+- 📈 **Oracle-gain recovery.** The paper reports 77%–92% recovery of the supervised-alignment improvement across the studied MNS and I-RAVEN settings.
+- 🔬 **Beyond selection precision.** High validity precision alone does not ensure that the retained pairs preserve the oracle's beneficial gradient.
+- ⚡ **Simple PyTorch core.** [`symselect.py`](symselect.py) works with any model that provides pairs of projected representations.
+
+---
 
 ## 💡 Why SymSelect?
 
-Swapping the operands of `2 + 5` preserves the result; swapping those of `2 − 5` does not. Aligning every pair injects invalid constraints; discarding all pairs sacrifices useful supervisory structure. A validity-label oracle is generally unavailable.
+Swapping operands preserves the answer to `2 + 5` but changes the answer to `2 − 5`. Aligning every transformed pair introduces incorrect constraints; ignoring transformations entirely loses useful supervision.
 
-SymSelect uses the model's projected cosine similarity to choose candidates, but similarity is not a perfect validity oracle. The theory separates invalid-pair contamination from a second issue: whether the retained valid subset faithfully represents the full valid-pair gradient.
+SymSelect selects promising pairs using similarities computed by the model itself. Its analysis distinguishes the effects of invalid pairs from changes in the gradient caused by retaining only a subset of valid pairs.
 
-## 📐 What SymSelect Computes
+---
 
-For original inputs `x_i` and one sampled transformation `T_i` per input, the shared backbone `f` and projection head `E` produce
+## 📐 How SymSelect Works
 
-```text
-z_i = E(f(x_i))       z'_i = E(f(T_i(x_i)))
-S_i = cosine(z_i, z'_i)
-K = top_k(S_1, ..., S_B)
-L_align = 1 - mean(S_i for i in K)
-L_total = CE(classifier(f(x)), y) + lambda_align * L_align
-```
+For a mini-batch of original samples `x_i`, sample one candidate transformation `T_i` per sample. A shared backbone `f_θ` and projection head `E` produce
 
-The selection indices are treated as fixed for backpropagation while the selected similarities retain their gradient. The reported paper setting uses mini-batch size `B=64`, `k=6`, and `lambda_align=1`.
+$$
+z_i=E(f_\theta(x_i)),\qquad z'_i=E(f_\theta(T_i(x_i))).
+$$
 
-The sufficient local oracle-inheritance inequality is
+Rank the cosine similarities and select the largest `k`:
 
-```text
-mu_J > H_J * (epsilon_sel + 2 * (1 - rho_k) * G)
-```
+$$
+S_i=\cos(z_i,z'_i),\qquad
+\mathcal K=\operatorname{TopK}(S_1,\ldots,S_B;k).
+$$
 
-where `rho_k` is selected validity precision and `epsilon_sel` measures the valid-subset gradient discrepancy. Precision alone cannot eliminate the latter.
+The optimization objective is
+
+$$
+L_{\mathrm{align}}=1-\frac{1}{k}\sum_{i\in\mathcal K}S_i,\qquad
+L=L_{\mathrm{CE}}+\lambda_{\mathrm{align}}L_{\mathrm{align}}.
+$$
+
+🎯 **Selection.** The top-`k` indices are discrete, while gradients flow through the selected similarities.
+
+🧩 **Supervision.** Cross-entropy is computed on the original samples. Only the chosen candidate pairs contribute to alignment.
+
+⚙️ **Paper setting.** `B=64`, `k=6` and `λ_align=1`.
+
+📏 **Theoretical condition.** With selected precision `ρ_k` and retained-valid gradient discrepancy `ε_sel`, a sufficient local condition for preserving the oracle's improvement is
+
+$$
+\mu_J>H_J\bigl(\epsilon_{\mathrm{sel}}+2(1-\rho_k)G\bigr).
+$$
+
+See [Method and Theory](docs/METHOD.md) for the quantities and assumptions, and [`demo/theory.py`](demo/theory.py) for an exact counterexample.
+
+---
 
 ## 🔎 Comparison of Methods
 
-| Method | Validity labels? | Alignment |
-|---|:---:|---|
-| Base | No | None |
-| Sym. Sample | Yes | Supervise valid transformed examples; no alignment term |
-| Align All | No | All candidates |
-| Random-k | No | Uniform k candidates |
-| Bottom-k | No | Lowest-similarity k |
-| Validity-matched random-k | Yes, diagnostic | Random identities while preserving each mini-batch's selected validity composition |
-| Sup. Align (oracle) | Yes | Valid candidate relations |
-| **SymSelect** | **No** | **Top-k projected cosine relations** |
+| Method | How candidate transformations are used |
+|---|---|
+| Base | Original-sample classification only |
+| Sym. Sample | Valid transformed examples receive supervised classification |
+| Align All | Align every candidate pair |
+| Random-`k` | Align `k` randomly sampled pairs |
+| Bottom-`k` | Align the `k` lowest-similarity pairs |
+| Validity-matched random-`k` | Match the selected valid/invalid composition, then randomize pair identities |
+| Sup. Align | Align all truly valid candidate pairs, with validity supervision |
+| 🔀 **SymSelect** | **Align the `k` highest-similarity pairs without validity supervision** |
 
-These control methods are described for interpreting the paper's experiments; only SymSelect itself is implemented as the core public API.
+---
 
 ## ⚙️ Install
+
+Python 3.10 or newer:
 
 ```bash
 git clone https://github.com/AtheavenMa/SymSelect.git
@@ -73,7 +103,7 @@ python -m pip install -e '.[demo,test]'
 python -m pytest -q
 ```
 
-No benchmark datasets or checkpoints are downloaded.
+---
 
 ## 🚀 Quickstart
 
@@ -82,63 +112,99 @@ import torch
 import torch.nn.functional as F
 from symselect import symselect_loss
 
-B = 64
-x = torch.randn(B, 5)
-x_transformed = torch.randn(B, 5)  # Replace with one T(x) per original
-y = torch.randint(0, 3, (B,))
+# Original samples, candidate transformations and original labels
+x = torch.randn(64, 5)
+x_t = x[:, [1, 0, 2, 3, 4]]
+y = (x[:, 0] + x[:, 1] > 0).long()
 
 backbone = torch.nn.Linear(5, 32)
-classifier = torch.nn.Linear(32, 3)
+classifier = torch.nn.Linear(32, 2)
 projector = torch.nn.Sequential(
     torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 16)
 )
 
-h = backbone(x)
-h_t = backbone(x_transformed)   # Shared backbone weights
-loss_ce = F.cross_entropy(classifier(h), y)   # Original anchors only
+h, h_t = backbone(x), backbone(x_t)
+loss_ce = F.cross_entropy(classifier(h), y)
+
 selection = symselect_loss(projector(h), projector(h_t), k=6)
 loss = loss_ce + selection.loss
 loss.backward()
 
-print("top-k indices:", selection.indices)
-print("alignment loss:", float(selection.loss.detach()))
+print("Selected pairs:", selection.indices.tolist())
+print("Alignment loss:", selection.loss.item())
 ```
+
+`symselect_loss` returns the loss, selected pair indices, all pair similarities and selected similarities.
+
+👉 For a complete training example with a mixture of valid and invalid operand swaps, run [`demo/demo.py`](demo/demo.py).
+
+---
 
 ## 📊 Main Results
 
-**Paper-reported numbers, not demo metrics.** Test accuracy across 10 seeds:
+**Test accuracy (%), mean ± standard deviation over 10 seeds**, as reported in the paper.
 
-| Benchmark | Base | Supervised alignment | SymSelect | Oracle gain recovered |
-|---|---:|---:|---:|---:|
-| MNS · CCT | 35.74% | 40.23% | 39.18% | 77% |
-| I-RAVEN · CCT | 75.62% | 79.34% | 78.97% | 90% |
+| Dataset | Backbone | Base | Sym. Sample | Sup. Align | 🔀 SymSelect |
+|---|---|---:|---:|---:|---:|
+| MNS | ResNet-MLP | 25.29±0.44 | 27.03±0.52 | 30.05±0.56 | **28.94±0.40** |
+| MNS | ViT-B/16 | 22.78±0.34 | 24.33±0.27 | 27.63±0.23 | **27.22±0.39** |
+| MNS | CLIP ViT-B/16 | 23.46±0.32 | 26.77±0.38 | 28.36±0.37 | **27.59±0.37** |
+| MNS | CCT | 35.74±0.46 | 37.86±0.45 | 40.23±0.41 | **39.18±0.49** |
+| I-RAVEN | CCT | 75.62±0.42 | 77.25±0.46 | 79.34±0.53 | **78.97±0.58** |
 
-Validity-matched random-`k` reaches 37.52% against SymSelect's 39.18% on MNS, and 77.21% against 78.97% on I-RAVEN. Thus merely matching selected validity composition does not reproduce selection's downstream performance.
+<p align="center">
+  <img src="assets/figures/recovery.svg" alt="SymSelect fraction of the supervised-alignment gain recovered on five benchmark configurations" width="850"/>
+</p>
 
-These values are copied from the supplied current paper rather than newly rerun. Do not interpret the small synthetic demo as the benchmark experiment.
+**Figure 2.** Recovered supervised-alignment gain, computed from reported mean accuracies as `(SymSelect − Base) / (Sup. Align − Base)`.
+
+**Validity-matched selector comparison (CCT):**
+
+| Method | MNS accuracy | I-RAVEN accuracy |
+|---|---:|---:|
+| Random-`k` | 36.27±0.44 | 75.96±0.45 |
+| Validity-matched random-`k` | 37.52±0.41 | 77.21±0.39 |
+| 🔀 **SymSelect** | **39.18±0.49** | **78.97±0.58** |
+
+SymSelect improves over validity-matched random-`k` by **1.66** points on MNS and **1.76** points on I-RAVEN. The compared methods have the same selected validity composition, isolating the effect of *which* pairs are selected.
+
+---
 
 ## 🧪 Demo
 
-```bash
-# Full offline arithmetic example: warmup + one actual gradient step
-python demo/demo.py --output outputs/arithmetic
+👉 **Arithmetic transformations.** Generate arithmetic expressions, swap operands, and use a small shared neural network to select candidate pairs and perform a PyTorch gradient update.
 
-# Exact theoretical counterexample using PyTorch autograd
-python demo/theory.py --output outputs/theory
+```bash
+python demo/demo.py
 ```
 
-The arithmetic demo generates `metrics.json`, `pairs.json` and `selection.png`. Its validity flags are used **after** selection for diagnostics only. It is intentionally not the original Machine Number Sense benchmark.
+The demo saves a similarity-ranking plot, selected-pair examples and training diagnostics to `outputs/demo/`.
 
-The theory demo demonstrates **100% selected validity precision** but an update effect of **-1**, whereas the full valid-pair oracle has effect **+1** on the example's linear diagnostic objective.
+👉 **Theory counterexample.** Three candidate relationships show how a selector with 100% validity precision can still produce a worse local update direction than the full valid-pair oracle.
 
-## 🗺️ Figure Map and Release Scope
+```bash
+python demo/theory.py
+```
 
-The complete locally validated release package includes the paper's original illustration assets and extended bilingual documentation. Its included images are derived from the current submission manuscript; legacy or redundant manuscript figures were excluded. The current GitHub transfer is tracked separately from the paper's reported benchmark values.
+See the [Demo Guide](docs/DEMO.md) for the commands and output descriptions.
+
+---
+
+## 🗺️ Figure Map
+
+| Figure | Description |
+|---|---|
+| [Overview](assets/figures/overview.svg) | Candidate generation, similarity selection and training |
+| [Recovery](assets/figures/recovery.svg) | Oracle-gain recovery across the five main settings |
+| [Demo visualization](demo/demo.py) | Ranked candidate similarities and selected-pair validity |
+
+---
 
 ## 🙏 Appreciation
 
-SymSelect is research about selective alignment under input-dependent transformation validity. Please credit original benchmark datasets, pretrained backbones and third-party components when extending the reference release.
+We thank the creators of the MNS and I-RAVEN benchmarks and the research community developing structural generalization and representation learning.
 
 ## 📜 License
 
-MIT for the original reference code; third-party materials retain their own rights. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
+
