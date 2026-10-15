@@ -1,4 +1,4 @@
-# 🔀 SymSelect：输入依赖有效性条件下的对称性对齐
+# 🔀 SymSelect: Learning Which Transformations to Trust for Systematic Reasoning
 
 🌍 Languages: [English](README.md) | [中文](README_cn.md)
 
@@ -215,7 +215,7 @@ python demo/theory.py
 
 感谢 MNS 和 I-RAVEN 的研究者，以及结构化泛化与表征学习领域的贡献者。
 
-📄 **论文。** *SymSelect: Recovering Symmetry Alignment When Validity Depends on the Sample*. arXiv 论文即将发布。
+📄 **论文。** *SymSelect: Learning Which Transformations to Trust for Systematic Reasoning*. arXiv 论文即将发布。
 
 ## 📜 License
 
