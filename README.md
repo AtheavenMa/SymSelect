@@ -85,7 +85,7 @@ The comparisons use the same candidate transformation family but differ in how t
 | Bottom-`k` | Align the `k` lowest-similarity pairs | No |
 | Validity-matched random-`k` | Preserve the selected valid/invalid counts and randomize pair identity | Yes |
 | Sup. Align (oracle) | Align all truly valid candidate pairs | Yes |
-| 🔀 **SymSelect** | **Align the top-`k` pairs by projected cosine similarity** | **No** |
+| **SymSelect** | **Align the top-`k` pairs by projected cosine similarity** | **No** |
 
 ---
 
@@ -144,7 +144,7 @@ python demo/demo.py
 
 **Accuracy (%), mean ± standard deviation over 10 seeds.** SymSelect approaches the supervised valid-pair oracle across four MNS backbones and CCT on I-RAVEN.
 
-| Dataset | Backbone | Base | Sym. Sample | Sup. Align | 🔀 SymSelect |
+| Dataset | Backbone | Base | Sym. Sample | Sup. Align | SymSelect |
 |---|---|---:|---:|---:|---:|
 | MNS | ResNet-MLP | 25.29±0.44 | 27.03±0.52 | 30.05±0.56 | **28.94±0.40** |
 | MNS | ViT-B/16 | 22.78±0.34 | 24.33±0.27 | 27.63±0.23 | **27.22±0.39** |
@@ -166,7 +166,7 @@ For CCT, the recovered Base-to-oracle gain is **77% on MNS** and **90% on I-RAVE
 |---|:---:|---:|:---:|---:|
 | Random-`k` | .28 / .10 | 36.27±0.44 | .29 / .08 | 75.96±0.45 |
 | Validity-matched random-`k` | .74 / .23 | 37.52±0.41 | .81 / .29 | 77.21±0.39 |
-| 🔀 **SymSelect** | **.74 / .23** | **39.18±0.49** | **.81 / .29** | **78.97±0.58** |
+| **SymSelect** | **.74 / .23** | **39.18±0.49** | **.81 / .29** | **78.97±0.58** |
 
 Even at matched selected validity composition, SymSelect improves test accuracy by **1.66** points on MNS and **1.76** points on I-RAVEN.
 
