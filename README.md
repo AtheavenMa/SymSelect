@@ -1,4 +1,4 @@
-# 🔀 SymSelect: Recovering Symmetry Alignment When Validity Depends on the Sample
+# 🔀 SymSelect: Learning Which Transformations to Trust for Systematic Reasoning
 
 🌍 Languages: [English](README.md) | [中文](README_cn.md)
 
@@ -218,7 +218,7 @@ python demo/theory.py
 
 We thank the creators of the MNS and I-RAVEN benchmarks and the wider representation-learning community.
 
-📄 **Paper.** *SymSelect: Recovering Symmetry Alignment When Validity Depends on the Sample*. arXiv paper coming soon.
+📄 **Paper.** *SymSelect: Learning Which Transformations to Trust for Systematic Reasoning*. arXiv paper coming soon.
 
 ## 📜 License
 
