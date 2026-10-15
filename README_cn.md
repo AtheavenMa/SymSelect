@@ -5,7 +5,7 @@
 👉 TL;DR. 同一种结构变换可能保留某些样本的标签，却改变另一些样本的标签。**SymSelect** 根据表征相似度选择需要对齐的候选样本对，在不知道变换有效性标签的情况下，恢复监督有效关系对齐的大部分收益。核心方法位于 [PyTorch 单文件](symselect.py)，并提供可运行的[算术 Demo](demo/demo.py) 与[理论 Demo](demo/theory.py)。
 
 <p align="center">
-  <b>📄 ICLR 2027 投稿</b> &nbsp; | &nbsp;
+  <b>📄 arXiv 论文即将发布</b> &nbsp; | &nbsp;
   <a href="#-quickstart"><b>🚀 Quickstart</b></a> &nbsp; | &nbsp;
   <a href="#-demo"><b>🧪 Demo</b></a>
 </p>
@@ -50,7 +50,7 @@ $$
 🧮 **相似度选择。** 在 mini-batch 的 $B$ 个候选样本对之间排序：
 
 $$
-S_i=\cos(z_i,z_i'),\qquad \mathcal K=\operatorname{TopK}(S_1,\dots,S_B;k).
+S_i=\cos(z_i,z_i'),\qquad \mathcal K=\mathrm{TopK}(S_1,\dots,S_B;k).
 $$
 
 🧩 **训练目标。** 分类损失只用于原始样本，选中的样本对用于对齐损失：
@@ -215,7 +215,7 @@ python demo/theory.py
 
 感谢 MNS 和 I-RAVEN 的研究者，以及结构化泛化与表征学习领域的贡献者。
 
-📄 **论文。** *SymSelect: Recovering Symmetry Alignment When Validity Depends on the Sample*. ICLR 2027 投稿。
+📄 **论文。** *SymSelect: Recovering Symmetry Alignment When Validity Depends on the Sample*. arXiv 论文即将发布。
 
 ## 📜 License
 
