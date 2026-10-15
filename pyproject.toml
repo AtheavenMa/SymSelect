@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "symselect-alignment"
+version = "0.1.0"
+description = "SymSelect reference top-k cosine alignment objective and offline demonstrations"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "SymSelect contributors" }]
+dependencies = ["torch>=2.2,<3"]
+keywords = ["alignment", "representation-learning", "symmetry", "top-k", "pytorch"]
+
+[project.optional-dependencies]
+demo = ["matplotlib>=3.7,<4"]
+test = ["pytest>=8,<10"]
+
+[tool.setuptools]
+py-modules = ["symselect"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 110
